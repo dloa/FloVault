@@ -4,12 +4,13 @@
 ///<reference path="def/bootstrap/bootstrap.d.ts" />
 ///<reference path="def/handlebars/handlebars.d.ts" />
 
-interface LTCAddressContainer {
-    [name: string]: LTCAddress;
+interface FLOAddressContainer {
+    [name: string]: FLOAddress;
 }
-interface LTCAddress {
+interface FLOAddress {
     label: string;
     priv: string;
+    addr: String;
 }
 interface BalanceMap {
     [name: string]: Number;
@@ -62,7 +63,7 @@ class Wallet {
     private identifier;
     private password;
 
-    protected addresses : LTCAddressContainer = {};
+    protected addresses : FLOAddressContainer = {};
     protected balances : BalanceMap = {};
 
     protected shared_key : string;
@@ -75,7 +76,7 @@ class Wallet {
     protected delAddressListeners = [];
 
 
-    public coin_network = Bitcoin.networks.litecoin;
+    public coin_network = Bitcoin.networks.florincoin;
 
     public CryptoConfig = {
         mode: CryptoJS.mode.CBC,
@@ -111,12 +112,12 @@ class Wallet {
         var key = Bitcoin.ECKey.makeRandom();
         var PubKey = key.pub.getAddress(this.coin_network).toString();
         var PrivKey = key.toWIF(this.coin_network);
-        this.addAddress(PubKey, {label: "", priv: PrivKey});
+        this.addAddress(PubKey, {label: "", priv: PrivKey, addr: PubKey});
         this.refreshBalances();
         this.store();
     }
 
-    addAddress(address : string, data : LTCAddress) {
+    addAddress(address : string, data : FLOAddress) {
         if(address in this.addresses) {
             alert("Warning: address " + address + " already exists, skipping.");
         } else {
@@ -129,12 +130,12 @@ class Wallet {
     addAddressFromWIF(WIF : string) {
         var address = Bitcoin.ECKey.fromWIF(WIF);
         var pubkey = address.pub.getAddress(this.coin_network).toString();
-        this.addAddress(pubkey, {priv: WIF, label: ""});
+        this.addAddress(pubkey, {priv: WIF, label: "", addr: pubkey});
         this.refreshBalances();
         this.store();
     }
 
-    addAddresses(addresses : LTCAddressContainer) {
+    addAddresses(addresses : FLOAddressContainer) {
         for (var key in addresses) {
             this.addAddress(key, addresses[key]);
             console.log(key + " : " + JSON.stringify( addresses[key]));
@@ -207,6 +208,12 @@ class Wallet {
         })
     }
 
+public getClassName() {
+    var funcNameRegex = /function (.{1,})\(/;
+    var results  = (funcNameRegex).exec(this["constructor"].toString());
+    return (results && results.length > 1) ? results[1] : "";
+}
+
     /**
      * refreshBalances(callback)
      *
@@ -216,32 +223,15 @@ class Wallet {
      * @param callback(balances)
      */
     refreshBalances(callback = function(balances) {}) {
-        var addrstring = Object.keys(this.addresses).join();
         var _this = this;
-        // no addresses, no point loading balances
-        if(addrstring == "") {
-            callback({});
-            return;
+        for (var i in this.addresses) {
+        	$.get('/wallet/getbalances/' + this.addresses[i].addr, function(data) {
+        		if(data) {
+        			var addr_data = data;
+        			_this.setBalance(addr_data['addrStr'], addr_data['balance']);
+        		}
+        	}, "json");
         }
-        $.get('/wallet/getbalances/' + addrstring, function(data) {
-            if(data.status == "success") {
-                // clear balance array
-                _this.balances = {};
-                // If you supply multiple addresses, then it's an array
-                // not an object; Thanks Blockr for the inconsistency...
-                if (Array.isArray(data.data)) {
-                    for(var v in data.data) {
-                        var addr_data = data.data[v];
-                        _this.setBalance(addr_data['address'], addr_data['balance']);
-                    }
-                } else {
-                    _this.setBalance(data.data['address'], data.data['balance']);
-                }
-                callback(this.balances);
-            } else {
-                alert('Uh oh, something went wrong calculating your balances');
-            }
-        }, "json");
     }
 
     getUnspent(address, callback) {
@@ -252,10 +242,10 @@ class Wallet {
 
             // blockr's API is inconsistent and returns a bare object
             // if there's only one unspent. We fix that and return an array ALWAYS.
-            if(Array.isArray(data.data.unspent)) {
-                callback(data.data.unspent);
+            if(Array.isArray(data)) {
+                callback(data);
             } else {
-                callback([data.data.unspent]);
+                callback([data]);
             }
         }, "json");
     }
@@ -327,9 +317,8 @@ class Wallet {
     sortTransactions(transactions : TransactionWrapperArray) {
         var allTransactions = [];
         for(var v in transactions) {
-            for(var t in transactions[v].txs) {
-                var newTx = transactions[v].txs[t];
-                newTx['address'] = transactions[v].address;
+            if(transactions[v]) {
+                var newTx = transactions[v];
                 allTransactions.push(newTx);
             }
         }
@@ -338,7 +327,7 @@ class Wallet {
     getTransactions(callback) {
         var _this = this;
         $.get('/wallet/addresstxs/' + Object.keys(this.addresses).join(), function(data) {
-            callback(_this.sortTransactions(Array.isArray(data.data) ? data.data : [data.data]));
+            callback(_this.sortTransactions(Array.isArray(data) ? data : [data]));
         }, "json");
     }
 
@@ -361,13 +350,15 @@ class Wallet {
                     var totalUnspent : number = parseInt((data.total * Math.pow(10, 8)).toString());
                     amount = parseInt((amount * Math.pow(10,8)).toString());
                     if(amount < minFeePerKb) {
-                        alert("You must send at least 0.001 LTC (otherwise your transaction may get rejected)");
+                        alert("You must send at least 0.001 FLO (otherwise your transaction may get rejected)");
                         return;
                     }
                     console.log('Sending ' + amount + ' satoshis from ' + fromAddress + ' to ' + toAddress + ' unspent amt: ' + totalUnspent);
                     var unspents = data.unspent;
                     for(var v in unspents) {
-                        tx.addInput(unspents[v].tx, unspents[v].n);
+                        if(unspents[v].confirmations) {
+                            tx.addInput(unspents[v].txid, unspents[v].vout);
+                        }
                     }
                     tx.addOutput(toAddress, amount);
                     console.log(tx);
@@ -427,7 +418,7 @@ class Wallet {
     pushTX(tx, callback = function(data) {}) {
         var _this = this;
         $.post('/wallet/pushtx', {hex: tx}, function(data) {
-            if(data.status !== "success") {
+            if(!data.txid) {
                 alert('There was an error pushing your transaction. May be a temporary problem, please try again later.');
             } else {
                 callback(data);
@@ -598,7 +589,7 @@ function colorTag(address) {
 function initializeWallet(wallet) {
 
     wallet.load(function() {
-        $('.ltc-balance').html('0 LTC');
+        $('.flo-balance').html('0 FLO');
         pulseAlerts();
 
         setInterval(pulseAlerts, 30000);
@@ -618,7 +609,7 @@ function initializeWallet(wallet) {
             renderAddresses();
         });
         wallet.registerBalanceChangeListener(function(balances) {
-            $('.ltc-balance').html(wallet.getTotalBalance().toFixed(5));
+            $('.flo-balance').html(wallet.getTotalBalance().toFixed(5));
             renderAddresses();
         });
         wallet.registerDelAddressListener(function(address) {
@@ -626,7 +617,7 @@ function initializeWallet(wallet) {
         });
         wallet.registerTransactionPushedListener(function(data) {
             console.log(data);
-            $('#txModalTXID').html(data.data);
+            $('#txModalTXID').html(data.txid);
             $('#txModal').modal('toggle');
             renderTransactions();
         });
@@ -691,7 +682,7 @@ function initializeWallet(wallet) {
 
         $('#list-addresses .qr-btn').click(function() {
             var address = $(this).parent().parent().attr('data-address');
-            $('#qrcode-img').attr('src', 'https://someguy123.com/coinwidget/qr/?address=litecoin:' + address);
+            $('#qrcode-img').attr('src', 'https://someguy123.com/coinwidget/qr/?address=florincoin:' + address);
             $('#qrcode-address').html(address);
             $('#qrcodeModal').modal('toggle');
         });
@@ -844,9 +835,9 @@ function renderAddresses() {
     for(var v in wallet.balances) {
         var cld = myAddr.children('[value="'+v+'"]');
         if(cld.length > 0) {
-            cld[0].innerHTML = v+" ("+wallet.balances[v]+" LTC)";
+            cld[0].innerHTML = v+" ("+wallet.balances[v]+" FLO)";
         } else {
-            myAddr.append('<option value="' + v + '">' + v + " (" + wallet.balances[v] + " LTC)</option>");
+            myAddr.append('<option value="' + v + '">' + v + " (" + wallet.balances[v] + " FLO)</option>");
         }
         // update balance in the address table
         balance = $('tr[data-address='+v+']');
@@ -930,28 +921,28 @@ var beep = (function () {
     try {
         var ctx = new(window.audioContext || window.webkitAudioContext);
         return function (duration, type, finishedCallback = function() {}) {
-    
+
             duration = +duration;
-    
+
             // Only 0-4 are valid types.
             type = (type % 5) || 0;
-    
+
             if (typeof finishedCallback != "function") {
                 finishedCallback = function () {};
             }
-    
+
             var osc = ctx.createOscillator();
-    
+
             osc.type = type;
-    
+
             osc.connect(ctx.destination);
             osc.noteOn(0);
-    
+
             setTimeout(function () {
                 osc.noteOff(0);
                 finishedCallback();
             }, duration);
-    
+
         };
     } catch(e) {
         console.error('beep not supported?: ', e);
@@ -963,7 +954,7 @@ declare var the_date;
 function timeSince(date) {
     date = new Date(date);
     the_date = new Date();
-    var seconds = Math.floor((the_date - date) / 1000);
+    var seconds = (the_date / 1000) - date;
 
     var interval = Math.floor(seconds / 31536000);
 

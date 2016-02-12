@@ -15,7 +15,7 @@
             <h3>The hidden service</h3>
             <p>
                 To protect our users privacy and security, we have set up a Tor hidden service.
-                If you use Tor to access LiteVault, it's EXTREMELY IMPORTANT that you use our Hidden Service URL rather than accessing the normal URL.
+                If you use Tor to access FloVault, it's EXTREMELY IMPORTANT that you use our Hidden Service URL rather than accessing the normal URL.
                 Below you will find an explanation of what can happen if you continue to use the regular URL over Tor, and why our hidden service protects you from this.
             </p>
         </div><br>
@@ -25,13 +25,13 @@
                 When you request a clearnet (non .onion address) through Tor, the request goes through three (can be changed) tor relays, one of which is an exit node.
                 <br><br>
                 The first node knows your IP address, but they can't see what you're sending (it's encrypted), the exit node does NOT know your IP, but they CAN see what
-                you're sending (they can decrypt it). This allows the exit node to forward your request to the server you're accessing (e.g. litevault.net).
+                you're sending (they can decrypt it). This allows the exit node to forward your request to the server you're accessing (e.g. flovault.net).
                 <br><br>
                 Not only can the exit node see your traffic, they can also manipulate it. This means it's possible for them to serve you a non-SSL version of our website,
                 bypassing our measures to prevent that happening.
                 <br><br>
                 WITHOUT Tor, your browser saves a header we send called HTTP Strict Transport Security, or HSTS for short. This header tells your browser to
-                NEVER try to access LiteVault without SSL, and if the SSL certificate changes (our proof that we are the real owners of LiteVault.net),
+                NEVER try to access FloVault without SSL, and if the SSL certificate changes (our proof that we are the real owners of FloVault.net),
                 you will get a big warning telling you that something bad is happening.
                 <br><br>
                 The problem with Tor happens primarily due to the Tor Browser Bundle.
@@ -39,7 +39,7 @@
                 This means once you close Tor Browser, it forgets that we told it to NEVER try to access our site without SSL.
                 This means even if you've accessed the site using SSL previously,
                 if you close the browser and come back at another time and your first request to the site goes through a malicious exit node,
-                they can send you a fake version of LiteVault, or even inject malicious Javascript to steal your passwords,
+                they can send you a fake version of FloVault, or even inject malicious Javascript to steal your passwords,
                 as well as modify our Javascript to remove any safeguards.
             </p>
         </div><br>
@@ -50,7 +50,7 @@
                 via Tor and we show them a big red banner informing them that they are NOT secure,
                 and that they must use our hidden service to prevent them losing their coins.(See image below)
                 <br><br>
-                Unlike clearnet URLs (like LiteVault.net), Tor Nodes CANNOT manipulate hidden services.
+                Unlike clearnet URLs (like FloVault.net), Tor Nodes CANNOT manipulate hidden services.
                 This means when you access our site via the official hidden service URL (vaultu7dxw5bbg37.onion),
                 your connection is fully encrypted from your browser, to our servers, and cannot be intercepted
                 or modified by malicious Tor nodes.
@@ -59,7 +59,7 @@
         <div class="col-xs-12 information_box">
             <h3>The short of it</h3>
             <p>
-                If you’re using Tor to access LiteVault, use <a href="http://vaultu7dxw5bbg37.onion">the hidden service url</a>. If you don’t, you risk your wallet being stolen.
+                If you’re using Tor to access FloVault, use <a href="http://vaultu7dxw5bbg37.onion">the hidden service url</a>. If you don’t, you risk your wallet being stolen.
             </p>
         </div><br>
     </div>

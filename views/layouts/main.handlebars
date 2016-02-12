@@ -7,18 +7,18 @@
     {{#if title}}
         <title>{{title}}</title>
     {{else}}
-        <title>LiteVault</title>
+        <title>FloVault</title>
     {{/if}}
 
     <!-- SEO -->
-    <meta name="description" content="LiteVault is a secure online Litecoin Wallet that uses encrypted wallets and in-browser crypto to deliver a trustless service"/>
-    <meta name="keywords" content="litecoin wallet vault litevault online crypto web"/>
+    <meta name="description" content="FloVault is a secure online Litecoin Wallet that uses encrypted wallets and in-browser crypto to deliver a trustless service"/>
+    <meta name="keywords" content="litecoin wallet vault flovault online crypto web"/>
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary"/>
-    <meta name="twitter:url" content="https://www.litevault.net"/>
-    <meta name="twitter:title" content="LiteVault - Secure Litecoin Web Wallet"/>
-    <meta name="twitter:description" content="LiteVault is a secure online web wallet that uses encrypted wallets and in-browser crypto to deliver a trustless service"/>
+    <meta name="twitter:url" content="https://www.flovault.net"/>
+    <meta name="twitter:title" content="FloVault - Secure Litecoin Web Wallet"/>
+    <meta name="twitter:description" content="FloVault is a secure online web wallet that uses encrypted wallets and in-browser crypto to deliver a trustless service"/>
     <meta name="twitter:image" content="https://i.imgur.com/zxauFKU.png"/>
 
     <!-- Bootstrap -->
@@ -53,7 +53,7 @@
                 <span class="icon-bar"></span>
                 <span class="icon-bar"></span>
             </button>
-            <a class="navbar-brand" href="#"><img src="/assets/images/litevault-logo.png"><span>LiteVault</span></a>
+            <a class="navbar-brand" href="#"><img src="/assets/images/litevault-logo.png"><span>FloVault</span></a>
             <span class="pull-right visible-xs-inline ltc-balance" id="navbar-balance" style="font-size: 22px;padding: 7px 7px;"></span>
         </div>
         <div id="navbar" class="collapse navbar-collapse">
@@ -95,15 +95,6 @@
                 </div>
                 <div class="row top_padder">
                     <!-- For security reasons, we don't load the coin widget on wallet pages-->
-                        {{#isWallet current_url}}
-                        <div class="col-xs-12 col-sm-6 col-md-12 text-center">
-                            LTC: <b>LNWEjx3DKSAWKX5fkWfCwa2tWSQeo7ZmnR</b>
-                        {{else}}
-                        <div class="col-xs-6 col-md-6 text-center">
-                            <div id="coinwidget-litecoin-LNWEjx3DKSAWKX5fkWfCwa2tWSQeo7ZmnR"></div>
-                        {{/isWallet}}
-
-                    </div>
                         {{#isWallet current_url}}
                             <div class="col-xs-12 col-sm-6 col-md-12 text-center">
                                 BTC: <b>17PPTHmS8N34KYKdDc4Gn1psabteGS8EE3</b>

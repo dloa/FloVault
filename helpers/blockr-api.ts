@@ -2,16 +2,16 @@ declare var require, module;
 
 var http = require('http');
 var querystring = require('querystring');
+var request = require('request');
 
 module Blockr {
 
 
-    var blockr_coin = 'ltc';
-
     var http_config = {
-        host: blockr_coin + '.blockr.io',
+        host: '173.198.238.83',
         path: '',
-        method: 'GET'
+        method: 'GET',
+        headers: {}
     };
 
     export function http_request(url, callback, post = false, post_data = "") {
@@ -32,14 +32,18 @@ module Blockr {
 
         var req = http.request(options, _cb);
         if(post === true) {
+            options.headers = {
+              'Content-Type': 'application/json'
+            }
             console.log("writing post request data: ", post_data);
+            post_data = JSON.stringify({"rawtx":post_data});
             req.write(post_data);
         }
         req.end();
     }
 
     export class Address {
-        protected prefix = '/api/v1/address';
+        protected prefix = '/api/addr/';
 
         unspent(addresses, callback) {
             var addr_str;
@@ -49,7 +53,7 @@ module Blockr {
                 // is already string
                 addr_str = addresses;
             }
-            var url = this.prefix + '/unspent/' + addr_str;
+            var url = '/api/addrs/' + addr_str + '/utxo';
             console.log(http_config.host);
             console.log(url);
             return http_request(url, callback);
@@ -63,7 +67,7 @@ module Blockr {
                 // is already string
                 addr_str = addresses;
             }
-            var url = this.prefix + '/info/' + addr_str + "?confirmations=0";
+            var url = this.prefix + addr_str;
             console.log(http_config.host);
             console.log(url);
             return http_request(url, callback);
@@ -76,21 +80,14 @@ module Blockr {
                 // is already string
                 addr_str = addresses;
             }
-            var url = this.prefix + '/txs/' + addr_str + "?confirmations=0";
+            var url = '/api/addrs/' + addr_str + '/txs';
             console.log(http_config.host);
             console.log(url);
             return http_request(url, callback);
         }
 
-        balances(addresses, callback, confirmations = 0) {
-            var addr_str;
-            if(Array.isArray(addresses)) {
-                addr_str = addresses.join();
-            } else {
-                // is already string
-                addr_str = addresses;
-            }
-            var url = this.prefix + '/balance/' + addr_str + '?confirmations='+confirmations;
+        balances(address, callback) {
+            var url = this.prefix  + address;
 
             console.log(http_config.host);
             console.log(url);
@@ -98,14 +95,15 @@ module Blockr {
         }
     }
     export class TX {
-        protected prefix = '/api/v1/tx';
+        protected prefix = '/api/tx/send';
 
         push(tx : string, callback) {
-            var url = this.prefix + '/push';
-            var post_data = querystring.stringify({"hex": tx});
-            console.log(url);
-            console.log(post_data);
-            http_request(url, callback, true, post_data);
+            request.post('http://173.198.238.83/api/tx/send', { form: {rawtx: tx}}, function(err, res, body){
+              if(err){
+                callback(err);
+              }
+              callback(body);
+            });
         }
     }
 }

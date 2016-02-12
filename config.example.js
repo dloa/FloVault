@@ -3,7 +3,7 @@ var connection = mysql.createConnection({
     host     : 'localhost',
     user     : '',
     password : '',
-    database : 'litevault',
+    database : 'florinvault',
     multipleStatements: true
 });
 

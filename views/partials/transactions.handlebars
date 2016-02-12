@@ -1,12 +1,11 @@
 {{#each transactions}}
     <tr>
-        <td>{{timeSince this.time_utc}} ago</td>
-        <td>{{this.amount}}</td>
-        <td>{{this.address}}</td>
+        <td>{{timeSince this.time}} ago</td>
+        <td>{{this.vout.0.value}}</td>
+        <td>{{this.tx-comment}}</td>
         <td>{{this.confirmations}}</td>
         <td>
-            (<a href="https://ltc.blockr.io/tx/info/{{this.tx}}" target="_blank">Blockr</a>)
-            (<a href="http://explorer.litecoin.net/tx/{{this.tx}}" target="_blank">LTC Explorer</a>)
+            (<a href="http://173.198.238.83/tx/{{this.txid}}" target="_blank">FlorinExplorer</a>)
         </td>
     </tr>
 {{/each}}
