@@ -770,7 +770,7 @@ function initializeWallet(wallet) {
 
 
 
-        document.title = "Litevault Wallet";
+        document.title = "Flovault Wallet";
     });
 }
 
