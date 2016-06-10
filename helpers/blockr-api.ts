@@ -8,7 +8,8 @@ module Blockr {
 
 
     var http_config = {
-        host: 'https://florinsight.alexandria.io',
+        host: 'localhost',
+        port: 9000
         path: '',
         method: 'GET',
         headers: {}
