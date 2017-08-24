@@ -1,14 +1,14 @@
-LiteVault
+FloVault
 --------
 Official Site: https://www.litevault.net
 
-LiteVault was designed to give Litecoin a site like Blockchain.info, meaning a trustless wallet with client-side transaction signing, private key storage etc.
+FloVault was designed to give Florincoin a site like Blockchain.info, meaning a trustless wallet with client-side transaction signing, private key storage etc.
 
 The initial version was developed in whole by Someguy123, as well as certain further updates.
 
 ## Donations
 
-Please be aware that LiteVault does not sell anything, we don't run ads, we run PURELY from donations. Please donate if you find the service, or the source code useful.
+Please be aware that FloVault does not sell anything, we don't run ads, we run PURELY from donations. Please donate if you find the service, or the source code useful.
 
 BTC: 17PPTHmS8N34KYKdDc4Gn1psabteGS8EE3
 
@@ -31,7 +31,7 @@ You **MAY NOT**:
 
   - Run any form of service for public use, or internal use within an organisation without prior written permission from Someguy123
   - Re-licence any part of the source code
-  - Use parts of LiteVault's source code in another project
+  - Use parts of FloVault's source code in another project
 
 This licence may change at any time by Someguy123's discretion.
 
@@ -71,7 +71,7 @@ We use standard CSS for our stylesheets, feel free to submit a pull request if y
 
 The server is in NodeJS (using the ExpressJS framework), this allows us to use [BitcoinJS](http://bitcoinjs.org) on the server side if we need to do anything with transactions or blocks, e.g. for the unspent transaction API. On top of this, NodeJS is well known enough that others can easily contribute.
 
-The frontend Javascript is written in Microsoft's [Typescript](http://www.typescriptlang.org/), Typescript cleans up Javascript by making some features in ECMAScript 6 available in older Javascript, it provides a lot of nice features such as real classes, interfaces, generics, types, enums among others. Typescript is now shipped natively with [Visual Studio 2013](http://www.visualstudio.com/en-us/products/visual-studio-community-vs) Update 2 (Windows only), and is supported in a lot of IDE's such as [Jetbrains WebStorm](https://www.jetbrains.com/webstorm/) (Win/Mac/Linux)(Recommended IDE for editing LiteVault).
+The frontend Javascript is written in Microsoft's [Typescript](http://www.typescriptlang.org/), Typescript cleans up Javascript by making some features in ECMAScript 6 available in older Javascript, it provides a lot of nice features such as real classes, interfaces, generics, types, enums among others. Typescript is now shipped natively with [Visual Studio 2013](http://www.visualstudio.com/en-us/products/visual-studio-community-vs) Update 2 (Windows only), and is supported in a lot of IDE's such as [Jetbrains WebStorm](https://www.jetbrains.com/webstorm/) (Win/Mac/Linux)(Recommended IDE for editing FloVault).
 
 Our templates are written in [Handlebars](http://handlebarsjs.com/), including both client partials, and backend templates.
 
@@ -81,9 +81,9 @@ How to install:
 
     # required to compile certain files
     npm install -g handlebars typescript
-    git clone https://github.com/someguy123/LiteVault.git
+    git clone https://github.com/someguy123/FloVault.git
     # install dependancies in the repo dir
-    cd LiteVault
+    cd FloVault
     npm install
     # compile required files
     bash build.sh

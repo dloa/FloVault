@@ -37,25 +37,27 @@ function inObject(obj) {
 
 /* GET home page. */
 router.get('/', function(req, res) {
-    res.render('wallet/index', { title: 'LiteVault Wallet' });
+    res.render('wallet/index', { title: 'FloVault Wallet' });
 });
 
 router.get('/create', function(req, res) {
-    res.render('wallet/create', { title: 'LiteVault Register' });
+    res.render('wallet/create', { title: 'FloVault Register' });
 });
 
 router.get('/login', function(req, res) {
-    res.render('wallet/login', { title: 'LiteVault Login' });
+    res.render('wallet/login', { title: 'FloVault Login' });
 });
 router.get('/forgot2fa', function(req, res) {
-    res.render('wallet/forgot2fa', { title: 'LiteVault Forgot 2FA' });
+    res.render('wallet/forgot2fa', { title: 'FloVault Forgot 2FA' });
 });
 
 function db_error(res, message) {
     if (message === void 0) { message = "There was a database error! Please contact an administrator immediately"}
-    res.json({
-        "error": {"type": "DB_ERROR", "message":message}
-    });
+    if (res){
+        res.json({
+            "error": {"type": "DB_ERROR", "message":message}
+        });
+    } 
 }
 
 router.post('/create', function(req, res) {
@@ -73,19 +75,21 @@ router.post('/create', function(req, res) {
 
 router.get('/checkload/:identifier', function(req,res) {
     if(inObject(req.params, 'identifier')) {
-        (new User(req)).read_user_settings(req.params.identifier, function(err, settings) {
-            if(err) {
-                db_error(res);
-            }
-            var output = {identifier: req.params.identifier};
-            output.gauth_enabled = (('gauth_enabled' in settings) && settings.gauth_enabled === 'true');
-            output.encryption_settings = ('encryption_settings' in settings) ? settings.encryption_settings : {algo: 'aes', iterations: 5};
-            (new User(req)).check2FA(res, req.params.identifier, function () {
-                output.auth_key_isvalid = true;
-                res.json(output);
-            }, function() {
-                output.auth_key_isvalid = false;
-                res.json(output);
+        (new User(req)).getIdentifier(req.params.identifier, function(identifier){
+            (new User(req)).read_user_settings(identifier, function(err, settings) {
+                if(err) {
+                    db_error(res);
+                }
+                var output = {identifier: identifier};
+                output.gauth_enabled = (('gauth_enabled' in settings) && settings.gauth_enabled === 'true');
+                output.encryption_settings = ('encryption_settings' in settings) ? settings.encryption_settings : {algo: 'aes', iterations: 5};
+                (new User(req)).check2FA(res, identifier, function () {
+                    output.auth_key_isvalid = true;
+                    res.json(output);
+                }, function() {
+                    output.auth_key_isvalid = false;
+                    res.json(output);
+                });
             });
         });
     } else {
@@ -99,50 +103,16 @@ router.get('/checkload/:identifier', function(req,res) {
 router.get('/load/:identifier', function(req, res) {
     var data = {};
     // TODO: prevent brute forcing identifiers etc.
-    (new User(req)).check2FA(res, req.params.identifier, function () {
-        mysql.query('SELECT * FROM users WHERE identifier = ?', [req.params.identifier], function(err, rows) {
-            if(err) {
-                db_error(res);
-            }
-            console.log(rows);
-            if(rows.length > 0) {
-                var user = rows[0];
-                data.error = false;
-                data.wallet = user['wallet_data'];
-            } else {
-                data.error = {
-                    "type": "WALLET_NOT_FOUND",
-                    "message": "There is no wallet with that identifier"
-                }
-            }
-            res.json(data);
-        });
-    });
-});
-
-router.post('/update', function(req, res) {
-    var data = {};
-    if(inObject(req.body, 'identifier')) {
-        var identifier = req.body.identifier;
-        // TODO: prevent brute forcing identifiers
+    (new User(req)).getIdentifier(req.params.identifier, function(identifier){
         (new User(req)).check2FA(res, identifier, function () {
-            mysql.query('SELECT * FROM users WHERE identifier = ?', [identifier], function (err, rows) {
-                if (err) {
+            mysql.query('SELECT * FROM users WHERE identifier = ?', [identifier], function(err, rows) {
+                if(err) {
                     db_error(res);
                 }
-                console.log(rows);
-                if (rows.length > 0) {
+                if(rows.length > 0) {
                     var user = rows[0];
-                    if (user.shared_key == req.body.shared_key) {
-                        data.error = false;
-                        data.message = "Successfully updated wallet";
-                        mysql.query('UPDATE users SET wallet_data = ?, last_update = ?, last_ip_address = ? WHERE identifier = ?', [req.body.wallet_data, Math.floor(new Date() / 1000), req.ip, identifier]);
-                    } else {
-                        data.error = {
-                            "type": "INVALID_SHAREDKEY",
-                            "message": "Fatal Error: Shared Key does not match wallet, update aborted"
-                        }
-                    }
+                    data.error = false;
+                    data.wallet = user['wallet_data'];
                 } else {
                     data.error = {
                         "type": "WALLET_NOT_FOUND",
@@ -152,14 +122,47 @@ router.post('/update', function(req, res) {
                 res.json(data);
             });
         });
+    });
+});
+
+router.post('/update', function(req, res) {
+    var data = {};
+    if(inObject(req.body, 'identifier')) {
+        // TODO: prevent brute forcing identifiers
+        (new User(req)).getIdentifier(req.body.identifier, function(identifier){
+            (new User(req)).check2FA(res, identifier, function () {
+                mysql.query('SELECT * FROM users WHERE identifier = ?', [identifier], function (err, rows) {
+                    if (err) {
+                        db_error(res);
+                    }
+                    if (rows.length > 0) {
+                        var user = rows[0];
+                        if (user.shared_key == req.body.shared_key) {
+                            data.error = false;
+                            data.message = "Successfully updated wallet";
+                            mysql.query('UPDATE users SET wallet_data = ?, last_update = ?, last_ip_address = ? WHERE identifier = ?', [req.body.wallet_data, Math.floor(new Date() / 1000), req.ip, identifier]);
+                        } else {
+                            data.error = {
+                                "type": "INVALID_SHAREDKEY",
+                                "message": "Fatal Error: Shared Key does not match wallet, update aborted"
+                            }
+                        }
+                    } else {
+                        data.error = {
+                            "type": "WALLET_NOT_FOUND",
+                            "message": "There is no wallet with that identifier"
+                        }
+                    }
+                    res.json(data);
+                });
+            });
+        });
     } else {
         res.json({error: {
             type: "INVALID_PARAM",
             message: "Missing required post parameters, required: (identifier)"}
         });
     }
-
-
 });
 
 /*
@@ -207,9 +210,11 @@ router.get('/addresstxs/:addr', function(req, res) {
 
 router.post('/update_account', function(req, res) {
     if(inObject(req.body, 'identifier', 'email', 'shared_key')) {
-        (new User(req)).check2FA(res, req.body.identifier, function () {
-            (new User(req)).updateEmail(req.body.identifier, req.body.shared_key, req.body.email, function(data) {
-                res.json(data);
+        (new User(req)).getIdentifier(req.body.identifier, function(identifier){
+            (new User(req)).check2FA(res, identifier, function () {
+                (new User(req)).updateEmail(identifier, req.body.shared_key, req.body.email, function(data) {
+                    res.json(data);
+                });
             });
         });
     } else {
@@ -221,9 +226,11 @@ router.post('/update_account', function(req, res) {
 });
 router.post('/read_account', function(req, res) {
     if(inObject(req.body, 'identifier', 'shared_key')) {
-        (new User(req)).check2FA(res, req.body.identifier, function () {
-            (new User(req)).readAccount(req.body.identifier, req.body.shared_key, function(data) {
-                res.json(data);
+        (new User(req)).getIdentifier(req.body.identifier, function(identifier){
+            (new User(req)).check2FA(res, identifier, function () {
+                (new User(req)).readAccount(identifier, req.body.shared_key, function(data) {
+                    res.json(data);
+                });
             });
         });
     } else {
@@ -236,14 +243,16 @@ router.post('/read_account', function(req, res) {
 
 
 router.get('/gauth_create', function(req, res) {
-    res.json({error:false, data: s.generate_key({length: 20, google_auth_qr: true, name: "LiteVault Wallet"})});
+    res.json({error:false, data: s.generate_key({length: 20, google_auth_qr: true, name: "FloVault Wallet"})});
 });
 
 router.post('/gauth_create', function(req, res) {
     if(inObject(req.body, 'identifier', 'token', 'secret', 'shared_key')) {
-        (new User(req)).check2FA(res, req.body.identifier, function () {
-            (new User(req)).setGauth(req.body.identifier, req.body.token, req.body.secret, req.body.shared_key, function (data) {
-                res.json(data);
+        (new User(req)).getIdentifier(req.body.identifier, function(identifier){
+            (new User(req)).check2FA(res, identifier, function () {
+                (new User(req)).setGauth(identifier, req.body.token, req.body.secret, req.body.shared_key, function (data) {
+                    res.json(data);
+                });
             });
         });
     } else {
@@ -258,12 +267,13 @@ router.post('/gauth_create', function(req, res) {
 
 router.post('/gauth', function(req,res) {
     if(inObject(req.body, 'token', 'identifier', 'is_trusted')) {
-        var identifier  = req.body.identifier
-          , token       = req.body.token
-          , is_trusted  = req.body.is_trusted;
+        (new User(req)).getIdentifier(req.body.identifier, function(identifier){
+            var token       = req.body.token
+              , is_trusted  = req.body.is_trusted;
 
-        (new User(req)).tryGauth(identifier, token, is_trusted, function(data) {
-            res.json(data);
+            (new User(req)).tryGauth(identifier, token, is_trusted, function(data) {
+                res.json(data);
+            });
         });
     } else {
         res.json({error: {

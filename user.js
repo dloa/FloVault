@@ -22,9 +22,20 @@ function db_error(message) {
 var User = (function() {
     function User(req) {
         this.req = req;
+
+        // If email was submitted as the identifier then load identifier from db
+        req.body.identifier
     }
     User.prototype.read_user_settings = function(identifier, callback) {
-        mysql.query('SELECT setting, value, shared_key FROM user_settings INNER JOIN users ON users.identifier = user_settings.identifier WHERE users.identifier = ?', [identifier], function(err, rows) {
+        var mysqlString = "";
+
+        if (identifier && typeof identifier === "string" && identifier.includes("@")){
+            mysqlString = 'SELECT setting, value, shared_key, identifier FROM user_settings INNER JOIN users ON users.email = user_settings.email WHERE users.email = ?';
+        } else {
+            mysqlString = 'SELECT setting, value, shared_key FROM user_settings INNER JOIN users ON users.identifier = user_settings.identifier WHERE users.identifier = ?';
+        }
+
+        mysql.query(mysqlString, [identifier], function(err, rows) {
             if(err) {
                 console.log(err);
                 callback(err);
@@ -38,32 +49,97 @@ var User = (function() {
                 }
             }
             callback(false, settings)
+        });
+    };
+    User.prototype.getIdentifierFromEmail = function(emailAddress, callback){
+        mysql.query('SELECT * FROM users WHERE email = ?', emailAddress, function(err, rows) {
+            if(err) {
+                console.log(err);
+                callback(err);
+            }
 
+            if(rows.length > 0) {
+                // false (noError), false (notUnique)
+                callback(false, rows[0].identifier);
+            } else {
+                // false (noError), true (unique)
+                callback(true, "No Identifier Matches Email");
+            }
+        });
+    };
+    User.prototype.getIdentifier = function(identifier, callback){
+        if (identifier && typeof identifier == "string" && identifier.includes("@")){
+            this.getIdentifierFromEmail(identifier, function(err, identifier){
+                if (err){
+                    console.log(identifier);
+                    return;
+                }
+                callback(identifier);
+            })
+        } else {
+            callback(identifier);
+        }
+    };
+    User.prototype.checkUniqueEmail = function(emailAddress, callback){
+        mysql.query('SELECT * FROM users WHERE email = ?', emailAddress, function(err, rows) {
+            if(err) {
+                console.log(err);
+                callback(err);
+            }
+            var settings = {};
+            if(rows.length > 0) {
+                // false (noError), false (notUnique)
+                callback(false, false);
+            } else {
+                // false (noError), true (unique)
+                callback(false, true);
+            }
         });
     };
     User.prototype.create = function(callback) {
-        var identifier = createUserString();
-        var data = {};
-        var wallet = {
-            identifier: identifier,
-            shared_key: crypto.randomBytes(48).toString('hex'),
-            wallet_data: "",
-            created_at: Math.floor(new Date() / 1000),
-            last_update: Math.floor(new Date() / 1000),
-            created_ip_address: this.req.ip,
-            last_ip_address: this.req.ip,
-            email: ('email' in this.req.body) ? this.req.body.email : null
-        };
-        mysql.query('INSERT INTO users SET ?', wallet, function(err, rows) {
-            if(err) {
-                console.log(err);
-                callback(db_error());
-            }
-            data.identifier = identifier;
-            data.shared_key = wallet.shared_key;
-            data.error = false;
-            callback(data);
-        });
+        var createAndFinish = function(req){
+            var identifier = createUserString();
+            var data = {};
+            var wallet = {
+                identifier: identifier,
+                shared_key: crypto.randomBytes(48).toString('hex'),
+                wallet_data: "",
+                created_at: Math.floor(new Date() / 1000),
+                last_update: Math.floor(new Date() / 1000),
+                created_ip_address: req.ip,
+                last_ip_address: req.ip,
+                email: ('email' in req.body) ? req.body.email : null
+            };
+            mysql.query('INSERT INTO users SET ?', wallet, function(err, rows) {
+                if(err) {
+                    console.log(err);
+                    callback(db_error());
+                }
+                data.identifier = identifier;
+                data.shared_key = wallet.shared_key;
+                data.error = false;
+                callback(data);
+            });
+        }
+
+        if (this.req && this.req.body && this.req.body.email){
+            var request = this.req;
+            this.checkUniqueEmail(this.req.body.email, function(err, unique){
+                if (err){
+                    callback({error: true, errorText: err });
+                    return;
+                }
+
+                if (unique){
+                    createAndFinish(request);
+                } else {
+                    callback({error: true, errorText: "Please provide a unique email"});
+                }
+            })
+        } else {
+            createAndFinish(this.req);
+        }
+            
     };
     User.prototype.genAuthKey = function(identifier, expires, callback) {
         var data = {
@@ -129,7 +205,7 @@ var User = (function() {
                             secret
                         ]);
 
-                        console.log(combined);
+                        //console.log(combined);
                         mysql.query(combined, function(err, rows) {
                             if(err) {
                                 console.log(err);
@@ -166,10 +242,10 @@ var User = (function() {
             if(err) {
                 res.json(db_error());
             }
-            if (('gauth_enabled' in settings) && settings.gauth_enabled === 'true') {
-                console.log(req.cookies);
+            if (settings && ('gauth_enabled' in settings) && settings.gauth_enabled === 'true') {
+                //console.log(req.cookies);
                 if('auth_key' in req.cookies) {
-                    console.log('in cookies');
+                    //console.log('in cookies');
                     mysql.query('SELECT * FROM user_authkeys WHERE identifier=? AND auth_key=?', [identifier, req.cookies.auth_key], function(err, rows) {
                         if(rows.length > 0) {
                             var row = rows[0];
@@ -193,7 +269,7 @@ var User = (function() {
                                 callback();
                             }
                         } else {
-                            console.log('not in db');
+                            //console.log('not in db');
                             // 2FA enabled, there's a cookie, but it's not in our DB
                             if (fail_callback === void 0) {
                                 res.json({error: {type: "2FA_ENABLED", message: "2FA is enabled for this account, but you're not authenticated."}});
@@ -227,13 +303,23 @@ var User = (function() {
             if (rows.length > 0) {
                 var row = rows[0];
                 if (row.shared_key === shared_key) {
-                    mysql.query('UPDATE users SET email = ? WHERE identifier = ?', [email, identifier], function(err, rows) {
-                        if(err) {
-                            callback(db_error());
+                    this.checkUniqueEmail(email, function(err, unique){
+                        if (unique){
+                            mysql.query('UPDATE users SET email = ? WHERE identifier = ?', [email, identifier], function(err, rows) {
+                                if(err) {
+                                    callback(db_error());
+                                } else {
+                                    callback({error: false})
+                                }
+                            });
                         } else {
-                            callback({error: false})
+                            callback({error: {
+                                "type": "EMAIL_NOT_UNIQUE",
+                                "message": "Unable to update email, please provide an email address that is not already in use."
+                            }})
                         }
-                    });
+                    })
+                        
                 } else {
                     callback({error: {
                         "type": "INVALID_SHAREDKEY",

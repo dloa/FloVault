@@ -225,12 +225,12 @@ public getClassName() {
     refreshBalances(callback = function(balances) {}) {
         var _this = this;
         for (var i in this.addresses) {
-        	$.get('/wallet/getbalances/' + this.addresses[i].addr, function(data) {
-        		if(data) {
-        			var addr_data = data;
-        			_this.setBalance(addr_data['addrStr'], addr_data['balance']);
-        		}
-        	}, "json");
+            $.get('/wallet/getbalances/' + this.addresses[i].addr, function(data) {
+                if(data) {
+                    var addr_data = data;
+                    _this.setBalance(addr_data['addrStr'], addr_data['balance']);
+                }
+            }, "json");
         }
     }
 
@@ -770,7 +770,7 @@ function initializeWallet(wallet) {
 
 
 
-        document.title = "Litevault Wallet";
+        document.title = "FloVault Wallet";
     });
 }
 
@@ -813,7 +813,11 @@ $('#register-btn').click(function() {
                 $('#reg-identifier').html(data.identifier);
                 $('#registeredModal').modal('toggle');
             } else {
-                alert("Uh oh! There was an error creating your wallet.")
+                if (data.errorText){
+                    alert(data.errorText);
+                } else {
+                    alert("Uh oh! There was an error creating your wallet.")
+                }
             }
         }, "json");
     }
@@ -945,7 +949,7 @@ var beep = (function () {
 
         };
     } catch(e) {
-        console.error('beep not supported?: ', e);
+        //console.error('beep not supported?: ', e);
         return function (duration,type,finishedCallback) {};
     }
 })();
