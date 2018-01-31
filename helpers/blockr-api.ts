@@ -8,7 +8,8 @@ module Blockr {
 
 
     var http_config = {
-        host: '173.198.238.83',
+        host: 'localhost',
+        port: 9000
         path: '',
         method: 'GET',
         headers: {}
@@ -98,7 +99,7 @@ module Blockr {
         protected prefix = '/api/tx/send';
 
         push(tx : string, callback) {
-            request.post('http://173.198.238.83/api/tx/send', { form: {rawtx: tx}}, function(err, res, body){
+            request.post('https://florinsight.alexandria.io/api/tx/send', { form: {rawtx: tx}}, function(err, res, body){
               if(err){
                 callback(err);
               }
